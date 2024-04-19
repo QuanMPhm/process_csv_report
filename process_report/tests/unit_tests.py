@@ -69,24 +69,17 @@ class TestRemoveNonBillables(TestCase):
             "Untouch Data Column": ["DataA", "DataB", "DataC", "DataD", "DataE"],
         }
         self.dataframe = pandas.DataFrame(data)
-
+        self.invoice_month = "2024-03"
         self.pi_to_exclude = ["PI2", "PI3"]
         self.projects_to_exclude = ["ProjectB", "ProjectD"]
-
-        self.output_file = tempfile.NamedTemporaryFile(delete=False)
-        self.output_file2 = tempfile.NamedTemporaryFile(delete=False)
-
-    def tearDown(self):
-        os.remove(self.output_file.name)
-        os.remove(self.output_file2.name)
 
     def test_remove_non_billables(self):
         billables_df = process_report.remove_non_billables(
             self.dataframe, self.pi_to_exclude, self.projects_to_exclude
         )
-        process_report.export_billables(billables_df, self.output_file.name)
-
-        result_df = pandas.read_csv(self.output_file.name)
+        result_df = process_report.export_billables(billables_df, "fake_invoice")[
+            "dataframe"
+        ]
 
         self.assertNotIn("PI2", result_df["Manager (PI)"].tolist())
         self.assertNotIn("PI3", result_df["Manager (PI)"].tolist())
@@ -105,14 +98,12 @@ class TestRemoveNonBillables(TestCase):
         self.assertIn("ProjectE", result_df["Project - Allocation"].tolist())
 
     def test_remove_billables(self):
-        process_report.remove_billables(
+        result_df = process_report.remove_billables(
             self.dataframe,
             self.pi_to_exclude,
             self.projects_to_exclude,
-            self.output_file2.name,
-        )
-
-        result_df = pandas.read_csv(self.output_file2.name)
+            "fake_invoice",
+        )["dataframe"]
 
         self.assertIn("PI2", result_df["Manager (PI)"].tolist())
         self.assertIn("PI3", result_df["Manager (PI)"].tolist())
@@ -181,10 +172,13 @@ class TestExportPICSV(TestCase):
             "Untouch Data Column": ["DataA", "DataB", "DataC", "DataD", "DataE"],
         }
         self.dataframe = pandas.DataFrame(data)
+        self.invoice_month = data["Invoice Month"][0]
 
     def test_export_pi(self):
         output_dir = tempfile.TemporaryDirectory()
-        process_report.export_pi_billables(self.dataframe, output_dir.name)
+        process_report.export_pi_billables(
+            self.dataframe, output_dir.name, self.invoice_month
+        )
 
         pi_csv_1 = f'{self.dataframe["Institution"][0]}_{self.dataframe["Manager (PI)"][0]}_{self.dataframe["Invoice Month"][0]}.csv'
         pi_csv_2 = f'{self.dataframe["Institution"][3]}_{self.dataframe["Manager (PI)"][3]}_{self.dataframe["Invoice Month"][3]}.csv'
@@ -381,6 +375,7 @@ class TestExportLenovo(TestCase):
             ],
         }
         self.dataframe = pandas.DataFrame(data)
+        self.invoice_month = "2024-03"
 
         output_file = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".csv")
         self.output_file = output_file.name
@@ -389,7 +384,9 @@ class TestExportLenovo(TestCase):
         os.remove(self.output_file)
 
     def test_apply_credit_0002(self):
-        process_report.export_lenovo(self.dataframe, self.output_file)
+        process_report.export_lenovo(
+            self.dataframe, self.invoice_month, self.output_file
+        )
         output_df = pandas.read_csv(self.output_file)
 
         self.assertTrue(
