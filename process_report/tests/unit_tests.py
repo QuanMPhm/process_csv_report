@@ -69,17 +69,24 @@ class TestRemoveNonBillables(TestCase):
             "Untouch Data Column": ["DataA", "DataB", "DataC", "DataD", "DataE"],
         }
         self.dataframe = pandas.DataFrame(data)
-        self.invoice_month = "2024-03"
+
         self.pi_to_exclude = ["PI2", "PI3"]
         self.projects_to_exclude = ["ProjectB", "ProjectD"]
+
+        self.output_file = tempfile.NamedTemporaryFile(delete=False)
+        self.output_file2 = tempfile.NamedTemporaryFile(delete=False)
+
+    def tearDown(self):
+        os.remove(self.output_file.name)
+        os.remove(self.output_file2.name)
 
     def test_remove_non_billables(self):
         billables_df = process_report.remove_non_billables(
             self.dataframe, self.pi_to_exclude, self.projects_to_exclude
         )
-        result_df = process_report.export_billables(billables_df, "fake_invoice")[
-            "dataframe"
-        ]
+        process_report.export_billables(billables_df, self.output_file.name)
+
+        result_df = pandas.read_csv(self.output_file.name)
 
         self.assertNotIn("PI2", result_df["Manager (PI)"].tolist())
         self.assertNotIn("PI3", result_df["Manager (PI)"].tolist())
@@ -98,12 +105,14 @@ class TestRemoveNonBillables(TestCase):
         self.assertIn("ProjectE", result_df["Project - Allocation"].tolist())
 
     def test_remove_billables(self):
-        result_df = process_report.remove_billables(
+        process_report.remove_billables(
             self.dataframe,
             self.pi_to_exclude,
             self.projects_to_exclude,
-            "fake_invoice",
-        )["dataframe"]
+            self.output_file2.name,
+        )
+
+        result_df = pandas.read_csv(self.output_file2.name)
 
         self.assertIn("PI2", result_df["Manager (PI)"].tolist())
         self.assertIn("PI3", result_df["Manager (PI)"].tolist())
@@ -375,7 +384,6 @@ class TestExportLenovo(TestCase):
             ],
         }
         self.dataframe = pandas.DataFrame(data)
-        self.invoice_month = "2024-03"
 
         output_file = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".csv")
         self.output_file = output_file.name
@@ -384,9 +392,7 @@ class TestExportLenovo(TestCase):
         os.remove(self.output_file)
 
     def test_apply_credit_0002(self):
-        process_report.export_lenovo(
-            self.dataframe, self.invoice_month, self.output_file
-        )
+        process_report.export_lenovo(self.dataframe, self.output_file)
         output_df = pandas.read_csv(self.output_file)
 
         self.assertTrue(

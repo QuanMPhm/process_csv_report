@@ -118,6 +118,13 @@ def main():
         required=True,
         help="File containing list of projects that are non-billable within a specified duration",
     )
+
+    parser.add_argument(
+        "--nonbillable-file",
+        required=False,
+        default="nonbillable.csv",
+        help="Name of nonbillable file",
+    )
     parser.add_argument(
         "--output-file",
         required=False,
@@ -134,13 +141,19 @@ def main():
         "--HU-invoice-file",
         required=False,
         default="HU_only.csv",
-        help="Name of output csv for HU invoices",
+        help="Name of output csv for HU invoice",
     )
     parser.add_argument(
         "--HU-BU-invoice-file",
         required=False,
         default="HU_BU.csv",
-        help="Name of output csv for HU and BU invoices",
+        help="Name of output csv for HU and BU invoice",
+    )
+    parser.add_argument(
+        "--Lenovo-file",
+        required=False,
+        default="Lenovo.csv",
+        help="Name of output csv for Lenovo SU Types invoice",
     )
     parser.add_argument(
         "--old-pi-file",
@@ -173,23 +186,32 @@ def main():
 
     projects = list(set(projects + timed_projects_list))
 
-    invoice_list = list()
-
     merged_dataframe = add_institution(merged_dataframe)
-    invoice_list.append(
-        remove_billables(merged_dataframe, pi, projects, "nonbillable.csv")
-    )
+    remove_billables(merged_dataframe, pi, projects, args.nonbillable_file)
 
     billable_projects = remove_non_billables(merged_dataframe, pi, projects)
     billable_projects = validate_pi_names(billable_projects)
     credited_projects = apply_credits_new_pi(billable_projects, args.old_pi_file)
 
-    invoice_list.append(export_billables(credited_projects, args.output_file))
+    export_billables(credited_projects, args.output_file)
     export_pi_billables(credited_projects, args.output_folder, invoice_month)
     export_HU_only(credited_projects, args.HU_invoice_file)
     export_HU_BU(credited_projects, args.HU_BU_invoice_file)
-    export_lenovo(credited_projects, invoice_month)
-    export_invoices(invoice_list, args.upload_to_s3, invoice_month)
+    export_lenovo(credited_projects, args.Lenovo_file)
+
+    if args.upload_to_s3:
+        invoice_list = [
+            args.nonbillable_file,
+            args.output_file,
+            args.HU_invoice_file,
+            args.HU_BU_invoice_file,
+            args.Lenovo_file,
+        ]
+
+        for pi_invoice in os.listdir(args.output_folder):
+            invoice_list.append(os.path.join(args.output_folder, pi_invoice))
+
+        upload_to_s3(invoice_list, invoice_month)
 
 
 def fetch_S3_invoices(invoice_month):
@@ -262,16 +284,7 @@ def remove_billables(dataframe, pi, projects, output_file):
         dataframe[PI_FIELD].isin(pi) | dataframe[PROJECT_FIELD].isin(projects)
     ]
 
-    invoice_b2_path = f"Invoices/{{}}/NERC (Non-Billable) {{}}.csv"  # noqa: F541
-    invoice_b2_path_archive = (
-        f"Invoices/{{}}/Archive/NERC (Non-Billable) {{}} {get_iso8601_time()}.csv"
-    )
-
-    return {
-        EXPORT_DATAFRAME: filtered_dataframe,
-        EXPORT_LOCAL_PATH: output_file,
-        EXPORT_S3_PATHS: [invoice_b2_path, invoice_b2_path_archive],
-    }
+    filtered_dataframe.to_csv(output_file, index=False)
 
 
 def validate_pi_names(dataframe):
@@ -345,16 +358,7 @@ def add_institution(dataframe: pandas.DataFrame):
 
 
 def export_billables(dataframe, output_file):
-    invoice_b2_path = f"Invoices/{{}}/NERC {{}}.csv"  # noqa: F541
-    invoice_b2_path_archive = (
-        f"Invoices/{{}}/Archive/NERC {{}} {get_iso8601_time()}.csv"
-    )
-
-    return {
-        EXPORT_DATAFRAME: dataframe,
-        EXPORT_LOCAL_PATH: output_file,
-        EXPORT_S3_PATHS: [invoice_b2_path, invoice_b2_path_archive],
-    }
+    dataframe.to_csv(output_file, index=False)
 
 
 def export_pi_billables(dataframe: pandas.DataFrame, output_folder, invoice_month):
@@ -389,9 +393,7 @@ def export_HU_BU(dataframe, output_file):
     # TODO (Quan Pham) Where to place these
 
 
-def export_lenovo(dataframe: pandas.DataFrame, invoice_month, output_file=None):
-    lenovo_file_name = output_file or f"Lenovo_{invoice_month}.csv"
-
+def export_lenovo(dataframe: pandas.DataFrame, output_file):
     LENOVO_SU_TYPES = ["OpenShift GPUA100SXM4", "OpenStack GPUA100SXM4"]
     SU_CHARGE_MULTIPLIER = 1
 
@@ -408,18 +410,19 @@ def export_lenovo(dataframe: pandas.DataFrame, invoice_month, output_file=None):
     lenovo_df.rename(columns={SU_HOURS_FIELD: "SU Hours"}, inplace=True)
     lenovo_df.insert(len(lenovo_df.columns), "SU Charge", SU_CHARGE_MULTIPLIER)
     lenovo_df["Charge"] = lenovo_df["SU Hours"] * lenovo_df["SU Charge"]
-    lenovo_df.to_csv(lenovo_file_name)
+    lenovo_df.to_csv(output_file)
     # TODO (Quan Pham) Where to place these
 
 
-def export_invoices(invoice_list: list, upload_to_s3, invoice_month):
-    for invoice in invoice_list:
-        local_path = invoice[EXPORT_LOCAL_PATH].format(invoice_month)
-        invoice[EXPORT_DATAFRAME].to_csv(local_path)
-        if upload_to_s3:
-            invoice_bucket = get_invoice_bucket()
-            for s3_path in invoice[EXPORT_S3_PATHS]:
-                invoice_bucket.upload_file(local_path, s3_path.format(invoice_month))
+def upload_to_s3(invoice_list: list, invoice_month):
+    invoice_bucket = get_invoice_bucket()
+    for invoice_filename in invoice_list:
+        invoice_b2_path = (
+            f"Invoices/{invoice_month}/{invoice_filename} {invoice_month}.csv"
+        )
+        invoice_b2_path_archive = f"Invoices/{invoice_month}/Archive/{invoice_filename} {invoice_month} {get_iso8601_time()}.csv"
+        invoice_bucket.upload_file(invoice_filename, invoice_b2_path)
+        invoice_bucket.upload_file(invoice_filename, invoice_b2_path_archive)
 
 
 if __name__ == "__main__":
