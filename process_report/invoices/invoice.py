@@ -4,6 +4,14 @@ import pandas
 import process_report.util as util
 
 
+### PI file field names
+PI_PI_FIELD = "PI"
+PI_FIRST_MONTH = "First Invoice Month"
+PI_INITIAL_CREDITS = "Initial Credits"
+PI_1ST_USED = "1st Month Used"
+PI_2ND_USED = "2nd Month Used"
+###
+
 ### Invoice field names
 INVOICE_DATE_FIELD = "Invoice Month"
 PROJECT_FIELD = "Project - Allocation"
