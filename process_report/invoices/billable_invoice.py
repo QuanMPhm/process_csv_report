@@ -20,9 +20,6 @@ class BillableInvoice(discount_invoice.DiscountInvoice):
     EXCLUDE_SU_TYPES = ["OpenShift GPUA100SXM4", "OpenStack GPUA100SXM4"]
     PI_S3_FILEPATH = "PIs/PI.csv"
 
-    nonbillable_pis: list[str]
-    nonbillable_projects: list[str]
-
     export_columns_list = [
         invoice.INVOICE_DATE_FIELD,
         invoice.PROJECT_FIELD,
@@ -63,26 +60,6 @@ class BillableInvoice(discount_invoice.DiscountInvoice):
         return old_pi_df
 
     @staticmethod
-    def _remove_nonbillables(
-        data: pandas.DataFrame,
-        nonbillable_pis: list[str],
-        nonbillable_projects: list[str],
-    ):
-        return data[
-            ~data[invoice.PI_FIELD].isin(nonbillable_pis)
-            & ~data[invoice.PROJECT_FIELD].isin(nonbillable_projects)
-        ]
-
-    @staticmethod
-    def _validate_pi_names(data: pandas.DataFrame):
-        invalid_pi_projects = data[pandas.isna(data[invoice.PI_FIELD])]
-        for i, row in invalid_pi_projects.iterrows():
-            logger.warn(
-                f"Billable project {row[invoice.PROJECT_FIELD]} has empty PI field"
-            )
-        return data[~pandas.isna(data[invoice.PI_FIELD])]
-
-    @staticmethod
     def _get_pi_age(old_pi_df: pandas.DataFrame, pi, invoice_month):
         """Returns time difference between current invoice month and PI's first invoice month
         I.e 0 for new PIs
@@ -102,10 +79,7 @@ class BillableInvoice(discount_invoice.DiscountInvoice):
             return month_diff
 
     def _prepare(self):
-        self.data = self._remove_nonbillables(
-            self.data, self.nonbillable_pis, self.nonbillable_projects
-        )
-        self.data = self._validate_pi_names(self.data)
+        self.data = self.data[self.data["Is Billable"] & ~self.data["Missing PI"]]
         self.data[invoice.CREDIT_FIELD] = None
         self.data[invoice.CREDIT_CODE_FIELD] = None
         self.data[invoice.BALANCE_FIELD] = self.data[invoice.COST_FIELD]

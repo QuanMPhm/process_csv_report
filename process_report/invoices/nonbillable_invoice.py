@@ -24,7 +24,4 @@ class NonbillableInvoice(invoice.Invoice):
     ]
 
     def _prepare_export(self):
-        self.data = self.data[
-            self.data[invoice.PI_FIELD].isin(self.nonbillable_pis)
-            | self.data[invoice.PROJECT_FIELD].isin(self.nonbillable_projects)
-        ]
+        self.data = self.data[~self.data["Is Billable"]]

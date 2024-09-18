@@ -18,6 +18,8 @@ from process_report.invoices import (
 from process_report.processors import (
     validate_pi_alias_processor,
     add_institution_processor,
+    remove_nonbillables_processor,
+    validate_billable_pi_processor,
 )
 
 ### PI file field names
@@ -215,19 +217,33 @@ def main():
     )
     add_institute_proc.process()
 
-    preliminary_processed_data = add_institute_proc.data
+    remove_nonbillables_proc = (
+        remove_nonbillables_processor.RemoveNonbillablesProcessor(
+            "", invoice_month, add_institute_proc.data, pi, projects
+        )
+    )
+    remove_nonbillables_proc.process()
 
-    ### Finish preliminary processing
+    validate_billable_pi_proc = (
+        validate_billable_pi_processor.ValidateBillablePIsProcessor(
+            "", invoice_month, remove_nonbillables_proc.data
+        )
+    )
+    validate_billable_pi_proc.process()
+
+    processed_data = validate_billable_pi_proc.data
+
+    ### Initialize invoices
 
     lenovo_inv = lenovo_invoice.LenovoInvoice(
         name=args.Lenovo_file,
         invoice_month=invoice_month,
-        data=preliminary_processed_data.copy(),
+        data=processed_data.copy(),
     )
     nonbillable_inv = nonbillable_invoice.NonbillableInvoice(
         name=args.nonbillable_file,
         invoice_month=invoice_month,
-        data=preliminary_processed_data.copy(),
+        data=processed_data.copy(),
         nonbillable_pis=pi,
         nonbillable_projects=projects,
     )
@@ -239,9 +255,7 @@ def main():
     billable_inv = billable_invoice.BillableInvoice(
         name=args.output_file,
         invoice_month=invoice_month,
-        data=preliminary_processed_data.copy(),
-        nonbillable_pis=pi,
-        nonbillable_projects=projects,
+        data=processed_data.copy(),
         old_pi_filepath=old_pi_file,
         limit_new_pi_credit_to_partners=rates_info.get_value_at(
             "Limit New PI Credit to MGHPCC Partners", invoice_month
