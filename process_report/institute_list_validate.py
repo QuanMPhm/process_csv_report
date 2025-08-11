@@ -2,6 +2,7 @@ import sys
 import argparse
 import pydantic
 import yaml
+import logging
 
 from process_report.institute_list_models import InstituteList
 
@@ -36,7 +37,7 @@ def main(arg_list: list[str] | None = None):
         with open(args.institute_list) as f:
             data = yaml.safe_load(f)
             institute_list = InstituteList.model_validate(data)
-            print(
+            logging.info(
                 f"Validation of {len(institute_list.root)} institution entries successful"
             )
     except pydantic.ValidationError as err:

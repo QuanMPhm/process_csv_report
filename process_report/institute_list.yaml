@@ -28,7 +28,7 @@
     - meei.harvard.edu
 -   display_name: Dana-Farber Cancer Institute
     domains:
-    - dfci.harvard.edu
+    - True
 -   display_name: Brigham and Women's Hospital
     domains:
     - bwh.harvard.edu

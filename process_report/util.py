@@ -56,7 +56,7 @@ def get_institution_from_pi(institute_map, pi_uname):
         institution_domain = institution_domain[institution_domain.find(".") + 1 :]
 
     if institution_name == "":
-        print(f"Warning: PI name {pi_uname} does not match any institution!")
+        logging.warning(f"PI name {pi_uname} does not match any institution!")
 
     return institution_name
 
