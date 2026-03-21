@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Coldfront info
-    coldfront_api_filepath: str | None = None
+    coldfront_api_filepaths: tuple[str, ...] = ()
     keycloak_client_id: str | None = None
     keycloak_client_secret: str | None = None
 

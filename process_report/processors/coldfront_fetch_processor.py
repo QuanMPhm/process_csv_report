@@ -2,7 +2,7 @@ import os
 import sys
 import functools
 import logging
-import json
+import yaml
 from dataclasses import dataclass, field
 
 import requests
@@ -32,7 +32,7 @@ class ColdfrontFetchProcessor(processor.Processor):
     nonbillable_projects: pandas.DataFrame = field(
         default_factory=loader.get_nonbillable_projects
     )
-    coldfront_data_filepath: str = invoice_settings.coldfront_api_filepath
+    coldfront_data_filepaths: tuple[str] = invoice_settings.coldfront_api_filepaths
 
     initializes_columns = (invoice.IS_COURSE_COLUMN,)
     operates_on_columns = (
@@ -94,18 +94,22 @@ class ColdfrontFetchProcessor(processor.Processor):
         return r.json()
 
     def _get_coldfront_api_data(self):
-        if self.coldfront_data_filepath:
-            logger.info(
-                f"Using Coldfront data from {self.coldfront_data_filepath} instead of API"
-            )
-            with open(self.coldfront_data_filepath, "r") as f:
-                return json.load(f)
-        else:
-            return self._fetch_coldfront_allocation_api()
+        api_data = []
+        for api_data_file in self.coldfront_data_filepaths:
+            logger.info(f"Using Coldfront data from {api_data_file}")
+            with open(api_data_file) as f:
+                api_data += yaml.safe_load(f)
+
+        if invoice_settings.keycloak_client_id:
+            logger.info("Loading Coldfront data from remote server")
+            api_data += self._fetch_coldfront_allocation_api()
+
+        return api_data
 
     def _get_allocation_data(self, coldfront_api_data):
         """Returns a mapping of (project ID, cluster name) tupels to a dict of project name, PI name, and institution code."""
         allocation_data = {}
+        duplicate_projects = []
         for project_dict in coldfront_api_data:
             try:
                 # Allow allocation to not have institute code
@@ -125,6 +129,8 @@ class ColdfrontFetchProcessor(processor.Processor):
                     project_dict["attributes"].get(CF_ATTR_IS_COURSE, "No").lower()
                     == "yes"
                 )
+                if (project_id, cluster_name) in allocation_data:
+                    duplicate_projects.append((project_id, cluster_name))
                 allocation_data[(project_id, cluster_name)] = {
                     invoice.PROJECT_FIELD: project_name,
                     invoice.PI_FIELD: pi_name,
@@ -134,6 +140,11 @@ class ColdfrontFetchProcessor(processor.Processor):
                 }
             except KeyError:
                 continue
+
+        if duplicate_projects:
+            raise ValueError(
+                f"Found allocations matched more than once in API data: {duplicate_projects}"
+            )
 
         return allocation_data
 

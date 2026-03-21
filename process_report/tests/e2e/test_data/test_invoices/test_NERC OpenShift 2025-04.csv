@@ -3,4 +3,5 @@ Invoice Month,Project - Allocation,Project - Allocation ID,Manager (PI),Cluster 
 2024-01,P1ID,P1ID,,shift,,,,,280,OpenStack GPUA100SXM4,0.013,100
 2024-01,P2ID,P2ID,,shift,,,,,280,OpenShift CPU,0.013,200
 2024-01,P3ID,P3ID,,shift,,,,,280,Free CPU,0.013,300
+2024-01,P4-supplement,P4-supplement,,shift,,,,,300,OpenShift CPU,0.013,400
 2024-01,P9ID,P9ID,,shift,,,,,280,OpenShift CPU,0.013,3000

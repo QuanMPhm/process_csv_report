@@ -66,7 +66,7 @@ def validate_required_env_vars(required_env_vars):
 def main():
     """Remove non-billable PIs and projects"""
     required_env_vars = []
-    if not invoice_settings.coldfront_api_filepath:
+    if not invoice_settings.coldfront_api_filepaths:
         required_env_vars.extend(["KEYCLOAK_CLIENT_ID", "KEYCLOAK_CLIENT_SECRET"])
     validate_required_env_vars(required_env_vars)
 

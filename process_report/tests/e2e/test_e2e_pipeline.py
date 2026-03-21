@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 import pandas as pd
 import pytest
@@ -112,7 +113,14 @@ def _prepare_pipeline_execution(
     # Environment setup for subprocess execution
     env = os.environ.copy()
     env["INVOICE_MONTH"] = INVOICE_MONTH
-    env["COLDFRONT_API_FILEPATH"] = str(test_files["test_coldfront_api_data.json"])
+
+    # pydantic_settings parses complex types as JSON-encoded strings: https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/#parsing-environment-variable-values
+    env["COLDFRONT_API_FILEPATHS"] = json.dumps(
+        (
+            str(test_files["test_coldfront_api_data.json"]),
+            str(test_files["test_supplement_api_data.yaml"]),
+        )
+    )
     env["FETCH_FROM_S3"] = "false"
     env["UPLOAD_TO_S3"] = "false"
     env["invoice_path_template"] = str(test_files["test_invoice_dir"])

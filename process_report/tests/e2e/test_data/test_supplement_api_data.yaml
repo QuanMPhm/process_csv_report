@@ -1,0 +1,7 @@
+- project:
+    pi: pi4@harvard.edu
+  attributes:
+    Allocated Project ID: P4-supplement
+    Allocated Project Name: P4-supplement-name
+  resource:
+    name: shift

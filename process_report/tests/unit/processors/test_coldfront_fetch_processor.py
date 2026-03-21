@@ -1,12 +1,20 @@
 from unittest import mock
+import yaml
+
 import pandas
 import pytest
 
+from process_report import settings
 from process_report.tests import util as test_utils
-from process_report.tests.base import BaseTestCase
+from process_report.tests.base import BaseTestCaseWithTempDir
 
 
-class TestColdfrontFetchProcessor(BaseTestCase):
+class TestColdfrontFetchProcessor(BaseTestCaseWithTempDir):
+    def setUp(self):
+        # To trigger fetch from Coldfront
+        settings.invoice_settings.keycloak_client_id = "foo"
+        return super().setUp()
+
     def _get_test_invoice(
         self,
         allocation_project_id,
@@ -259,4 +267,94 @@ class TestColdfrontFetchProcessor(BaseTestCase):
         expected_missing = [("P1", "clusterB"), ("P4", "clusterA")]
         assert str(cm.value) == (
             f"Projects {expected_missing} not found in Coldfront and are billable! Please check the project names"
+        )
+
+    @mock.patch(
+        "process_report.processors.coldfront_fetch_processor.ColdfrontFetchProcessor._fetch_coldfront_allocation_api",
+    )
+    def test_supplement_api_data_used_when_coldfront_missing(
+        self, mock_get_allocation_data
+    ):
+        """Supplement API rows are applied to invoice in _get_allocation_data()."""
+        mock_get_allocation_data.return_value = self._get_mock_allocation_data(
+            ["P1"],
+            ["PI1"],
+            ["IC1"],
+            ["stack"],
+        )
+
+        # Supplemental data should follow same structure as Coldfront data,
+        # only missing "Is Course?" and "Institution-Specific Code" fields
+        supplemental_df = self._get_mock_allocation_data(
+            ["P2"],
+            ["PI2"],
+            ["Delete Institude Code"],
+            ["stack"],
+        )
+        del supplemental_df[0]["attributes"]["Institution-Specific Code"]
+
+        supplemental_filepath = self.tempdir / "supplement.yaml"
+        with open(supplemental_filepath, "w") as f:
+            yaml.safe_dump(supplemental_df, f)
+
+        test_invoice = self._get_test_invoice(
+            ["P1", "P2"], cluster_name=["stack", "stack"]
+        )
+
+        expected_invoice = self._get_test_invoice(
+            ["P1", "P2"],
+            ["P1-name", "P2-name"],
+            ["PI1", "PI2"],
+            ["IC1", "N/A"],
+            ["stack", "stack"],
+            [False, False],
+        )
+
+        test_coldfront_fetch_proc = test_utils.new_coldfront_fetch_processor(
+            data=test_invoice, coldfront_data_filepaths=[supplemental_filepath]
+        )
+        test_coldfront_fetch_proc.process()
+        output_invoice = test_coldfront_fetch_proc.data
+
+        assert output_invoice.equals(expected_invoice)
+
+    @mock.patch(
+        "process_report.processors.coldfront_fetch_processor.ColdfrontFetchProcessor._fetch_coldfront_allocation_api",
+    )
+    def test_duplicate_allocation_cluster_in_api_data(self, mock_get_allocation_data):
+        """Test that a ValueError is raised when API data contains duplicate (allocation, cluster) pairs."""
+        mock_data = [
+            {
+                "resource": {"name": "stack"},
+                "project": {"pi": "PI1"},
+                "attributes": {
+                    "Allocated Project ID": "P1",
+                    "Allocated Project Name": "P1-name",
+                    "Institution-Specific Code": "IC1",
+                },
+            },
+            {
+                "resource": {"name": "stack"},
+                "project": {"pi": "PI1"},
+                "attributes": {
+                    "Allocated Project ID": "P1",
+                    "Allocated Project Name": "P1-name",
+                    "Institution-Specific Code": "IC1",
+                },
+            },
+        ]
+        mock_get_allocation_data.return_value = mock_data
+
+        test_invoice = self._get_test_invoice(["P1"], cluster_name=["stack"])
+
+        test_coldfront_fetch_proc = test_utils.new_coldfront_fetch_processor(
+            data=test_invoice
+        )
+
+        with pytest.raises(ValueError) as cm:
+            test_coldfront_fetch_proc.process()
+
+        assert (
+            str(cm.value)
+            == "Found allocations matched more than once in API data: [('P1', 'stack')]"
         )
