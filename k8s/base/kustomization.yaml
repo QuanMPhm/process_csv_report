@@ -1,2 +1,3 @@
 resources:
   - invoice-processing.yaml
+  - invoice-daily-check.yaml

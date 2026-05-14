@@ -27,17 +27,16 @@ if [ ! -d ./non-billable-projects ]; then
     git clone git@github-nonbillable:CCI-MOC/non-billable-projects.git ./non-billable-projects
 fi
 
-INVOICE_MONTH=$(date --date="$(date +%Y-%m-01) -1 month" +%Y-%m)
-python -m process_report.process_report \
-    --fetch-from-s3 \
-    --upload-to-s3 \
-    --invoice-month $INVOICE_MONTH \
-    --pi-file ./non-billable-projects/pi.txt \
-    --projects-file ./non-billable-projects/projects.txt \
-    --timed-projects-file ./non-billable-projects/timed_projects.txt \
-    --nonbillable-file "NERC (Nonbillable)" \
-    --output-file "NERC" \
-    --output-folder "PI Invoices" \
-    --BU-invoice-file "NERC BU" \
-    --Lenovo-file "Lenovo" \
-    --BU-subsidy-amount 100
+
+export S3_ENDPOINT=${S3_ENDPOINT:-'https://s3.us-east-005.backblazeb2.com'}
+export S3_BUCKET_NAME=${S3_BUCKET_NAME:-'nerc-invoicing'}
+
+export CHROME_BIN_PATH='/usr/bin/chromium'
+
+export NONBILLABLE_PIS_FILEPATH='./non-billable-projects/pi.yaml'
+export NONBILLABLE_PROJECTS_FILEPATH='./non-billable-projects/projects.yaml'
+export PREPAY_PROJECTS_FILEPATH='./non-billable-projects/prepaid_projects.yaml'
+export PREPAY_CREDITS_FILEPATH='./non-billable-projects/prepaid_credits.yaml'
+export PREPAY_CONTACTS_FILEPATH='./non-billable-projects/prepaid_contacts.yaml'
+
+python -m process_report.process_report
