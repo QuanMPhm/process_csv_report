@@ -5,6 +5,7 @@ from process_report.invoices import (
     pi_specific_invoice,
     prepay_credits_snapshot,
     NERC_total_invoice,
+    MOCA_prepaid_invoice,
 )
 
 from process_report.processors import (
@@ -204,4 +205,16 @@ def new_validate_cluster_name_processor(
 ):
     return validate_cluster_name_processor.ValidateClusterNameProcessor(
         invoice_month, data, name
+    )
+
+
+def new_moca_prepaid_invoice(
+    name="",
+    invoice_month="0000-00",
+    data=None,
+):
+    return MOCA_prepaid_invoice.MOCAPrepaidInvoice(
+        invoice_month,
+        data,
+        name,
     )
