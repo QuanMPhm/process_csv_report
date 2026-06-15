@@ -21,6 +21,7 @@ EXPECTED_CSV_FILES = [
     "MOCA-A_Prepaid_Groups-2025-06-Invoice.csv",
     "NERC_Prepaid_Group-Credits-2025-06.csv",
     "OCP_TEST 2025-06.csv",
+    "Royalties 2025-06.csv",
 ]
 
 EXPECTED_DIRECTORIES = ["pi_invoices"]
@@ -126,6 +127,11 @@ def _prepare_pipeline_execution(
     env["PREPAY_CONTACTS_FILEPATH"] = str(test_files["test_prepay_contacts.csv"])
     env["nonbillable_pis_filepath"] = str(test_files["test_pi.yaml"])
     env["nonbillable_projects_filepath"] = str(test_files["test_projects.yaml"])
+
+    env["ROYALTY_RATE"] = "0.1"
+    env["ROYALTY_EXEMPT_INSTITUTIONS_FILEPATH"] = str(
+        test_files["test_royalty_exempt_institutions.txt"]
+    )
 
     # Fallback ensures test works even when CI environment doesn't set Chrome path
     env.setdefault("CHROME_BIN_PATH", "/usr/bin/chromium")

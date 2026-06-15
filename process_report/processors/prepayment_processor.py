@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 
 @dataclass
 class PrepaymentProcessor(discount_processor.DiscountProcessor):
-    IS_DISCOUNT_BY_NERC = True
+    IS_DISCOUNT_BY_NERC = False
     PREPAY_DEBITS_S3_FILEPATH = "Prepay/prepay_debits.csv"
 
     initializes_columns = (

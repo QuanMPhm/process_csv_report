@@ -43,6 +43,8 @@ FIELD_DTYPES = {
     "MGHPCC Managed": BOOL_FIELD_TYPE,
     "Cluster Name": STRING_FIELD_TYPE,
     "Is Course": BOOL_FIELD_TYPE,
+    "Is Externally Funded": BOOL_FIELD_TYPE,
+    "Royalty": BALANCE_FIELD_TYPE,
 }
 
 

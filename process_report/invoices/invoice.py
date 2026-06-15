@@ -76,6 +76,7 @@ CREDIT_FIELD = "Credit"
 CREDIT_CODE_FIELD = "Credit Code"
 SUBSIDY_FIELD = "Subsidy"
 BALANCE_FIELD = "Balance"
+ROYALTY_FIELD = "Royalty"
 ###
 
 ### Internally used field names
@@ -86,6 +87,7 @@ PROJECT_NAME_FIELD = "Project"
 GROUP_MANAGED_FIELD = "MGHPCC Managed"
 CLUSTER_NAME_FIELD = "Cluster Name"
 IS_COURSE_FIELD = "Is Course"
+IS_EXTERNALLY_FUNDED_FIELD = "Is Externally Funded"
 ###
 
 ### Initialized Column objects
@@ -142,6 +144,10 @@ CLUSTER_NAME_COLUMN = InvoiceColumn(name=CLUSTER_NAME_FIELD, dtype=STRING_FIELD_
 IS_COURSE_COLUMN = InvoiceColumn(
     name=IS_COURSE_FIELD, dtype=BOOL_FIELD_TYPE, default_value=False
 )
+IS_EXTERNALLY_FUNDED_COLUMN = InvoiceColumn(
+    name=IS_EXTERNALLY_FUNDED_FIELD, dtype=BOOL_FIELD_TYPE, default_value=False
+)
+ROYALTY_COLUMN = InvoiceColumn(name=ROYALTY_FIELD, dtype=BALANCE_FIELD_TYPE)
 ###
 
 

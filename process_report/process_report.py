@@ -18,6 +18,7 @@ from process_report.invoices import (
     MOCA_prepaid_invoice,
     prepay_credits_snapshot,
     ocp_test_invoice,
+    royalty_invoice,
 )
 from process_report.processors import (
     coldfront_fetch_processor,
@@ -31,6 +32,7 @@ from process_report.processors import (
     bu_subsidy_processor,
     prepayment_processor,
     validate_cluster_name_processor,
+    royalty_processor,
 )
 
 PROCESSING_ORDER = [
@@ -45,6 +47,7 @@ PROCESSING_ORDER = [
     new_pi_credit_processor.NewPICreditProcessor,
     bu_subsidy_processor.BUSubsidyProcessor,
     prepayment_processor.PrepaymentProcessor,
+    royalty_processor.RoyaltyProcessor,
 ]
 
 
@@ -97,6 +100,7 @@ def main():
             MOCA_prepaid_invoice.MOCAPrepaidInvoice,
             prepay_credits_snapshot.PrepayCreditsSnapshot,
             ocp_test_invoice.OcpTestInvoice,
+            royalty_invoice.RoyaltyInvoice,
         ],
         invoice_settings.upload_to_s3,
     )

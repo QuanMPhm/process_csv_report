@@ -15,6 +15,7 @@ class TestColdfrontFetchProcessor(BaseTestCase):
         institute_code=None,
         cluster_name=None,
         is_course=None,
+        externally_funded=None,
     ):
         if not pi:
             pi = [""] * len(allocation_project_id)
@@ -31,6 +32,9 @@ class TestColdfrontFetchProcessor(BaseTestCase):
         if not is_course:
             is_course = [False] * len(allocation_project_id)
 
+        if not externally_funded:
+            externally_funded = [False] * len(allocation_project_id)
+
         return self.create_test_invoice(
             {
                 "Manager (PI)": pi,
@@ -39,6 +43,7 @@ class TestColdfrontFetchProcessor(BaseTestCase):
                 "Institution - Specific Code": institute_code,
                 "Cluster Name": cluster_name,
                 "Is Course": is_course,
+                "Is Externally Funded": externally_funded,
             }
         )
 
@@ -49,6 +54,7 @@ class TestColdfrontFetchProcessor(BaseTestCase):
         institute_code_list,
         cluster_list,
         is_course_list=None,
+        externally_funded_list=None,
     ):
         mock_data = []
         for i, project in enumerate(project_id_list):
@@ -58,6 +64,7 @@ class TestColdfrontFetchProcessor(BaseTestCase):
                 },
                 "project": {
                     "pi": pi_list[i],
+                    "attributes": {},
                 },
                 "attributes": {
                     "Allocated Project ID": project,
@@ -68,6 +75,11 @@ class TestColdfrontFetchProcessor(BaseTestCase):
 
             if is_course_list:
                 mock_project_dict["attributes"]["Is Course?"] = is_course_list[i]
+
+            if externally_funded_list:
+                mock_project_dict["project"]["attributes"]["Is Externally Funded"] = (
+                    externally_funded_list[i]
+                )
 
             mock_data.append(mock_project_dict)
 
@@ -93,6 +105,7 @@ class TestColdfrontFetchProcessor(BaseTestCase):
             ["IC1", "IC1", "", "", "IC2"],
             ["stack"] * 5,
             is_course=[False] * 5,
+            externally_funded=[False] * 5,
         )
         test_coldfront_fetch_proc = test_utils.new_coldfront_fetch_processor(
             data=test_invoice
@@ -223,6 +236,65 @@ class TestColdfrontFetchProcessor(BaseTestCase):
             ["IC1", "IC2", "IC3"],
             ["stack", "stack", "stack"],
             [True, False, True],
+        )
+        test_coldfront_fetch_proc = test_utils.new_coldfront_fetch_processor(
+            data=test_invoice
+        )
+        test_coldfront_fetch_proc.process()
+        output_invoice = test_coldfront_fetch_proc.data
+        assert output_invoice.equals(answer_invoice)
+
+    @mock.patch(
+        "process_report.processors.coldfront_fetch_processor.ColdfrontFetchProcessor._fetch_coldfront_allocation_api",
+    )
+    def test_is_externally_funded_default(self, mock_get_allocation_data):
+        """If 'Is Externally Funded' is not set in the API data, default to False"""
+        mock_get_allocation_data.return_value = self._get_mock_allocation_data(
+            ["P1", "P2", "P3"],
+            ["PI1", "PI2", "PI3"],
+            ["IC1", "IC2", "IC3"],
+            ["stack", "stack", "stack"],
+        )
+        test_invoice = self._get_test_invoice(
+            ["P1", "P2", "P3"], cluster_name=["stack", "stack", "stack"]
+        )
+        answer_invoice = self._get_test_invoice(
+            ["P1", "P2", "P3"],
+            ["P1-name", "P2-name", "P3-name"],
+            ["PI1", "PI2", "PI3"],
+            ["IC1", "IC2", "IC3"],
+            ["stack", "stack", "stack"],
+            externally_funded=[False, False, False],
+        )
+        test_coldfront_fetch_proc = test_utils.new_coldfront_fetch_processor(
+            data=test_invoice
+        )
+        test_coldfront_fetch_proc.process()
+        output_invoice = test_coldfront_fetch_proc.data
+        assert output_invoice.equals(answer_invoice)
+
+    @mock.patch(
+        "process_report.processors.coldfront_fetch_processor.ColdfrontFetchProcessor._fetch_coldfront_allocation_api",
+    )
+    def test_is_externally_funded_values(self, mock_get_allocation_data):
+        """If 'Is Externally Funded' is set in the API data, the output 'Is Externally Funded' column reflects True/False"""
+        mock_get_allocation_data.return_value = self._get_mock_allocation_data(
+            ["P1", "P2", "P3"],
+            ["PI1", "PI2", "PI3"],
+            ["IC1", "IC2", "IC3"],
+            ["stack", "stack", "stack"],
+            externally_funded_list=["Yes", "No", "yes"],
+        )
+        test_invoice = self._get_test_invoice(
+            ["P1", "P2", "P3"], cluster_name=["stack", "stack", "stack"]
+        )
+        answer_invoice = self._get_test_invoice(
+            ["P1", "P2", "P3"],
+            ["P1-name", "P2-name", "P3-name"],
+            ["PI1", "PI2", "PI3"],
+            ["IC1", "IC2", "IC3"],
+            ["stack", "stack", "stack"],
+            externally_funded=[True, False, True],
         )
         test_coldfront_fetch_proc = test_utils.new_coldfront_fetch_processor(
             data=test_invoice

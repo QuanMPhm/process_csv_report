@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pandas
 
 from process_report.invoices import (
@@ -10,6 +12,7 @@ from process_report.invoices import (
 
 from process_report.processors import (
     coldfront_fetch_processor,
+    royalty_processor,
     validate_pi_alias_processor,
     lenovo_processor,
     validate_billable_pi_processor,
@@ -217,4 +220,20 @@ def new_moca_prepaid_invoice(
         invoice_month,
         data,
         name,
+    )
+
+
+def new_royalty_processor(
+    name="",
+    invoice_month="0000-00",
+    data=None,
+    royalty_rate=Decimal("0.00"),
+    institution_list=None,
+):
+    if data is None:
+        data = pandas.DataFrame()
+    if institution_list is None:
+        institution_list = []
+    return royalty_processor.RoyaltyProcessor(
+        invoice_month, data, name, royalty_rate, institution_list
     )

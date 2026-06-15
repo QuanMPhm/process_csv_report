@@ -215,5 +215,10 @@ class Loader:
             ].itertuples(index=False, name=None)
         )
 
+    @functools.lru_cache
+    def get_royalty_exempt_institutions_list(self) -> tuple[str]:
+        with open(invoice_settings.royalty_exempt_institutions_filepath) as f:
+            return tuple(f.read().splitlines())
+
 
 loader = Loader()

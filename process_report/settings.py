@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     prepay_credits_filepath: str = "prepaid_credits.csv"
     prepay_contacts_filepath: str = "prepaid_contacts.csv"
 
+    # Royalty configuration
+    royalty_rate: Decimal = Decimal("0.00")
+    royalty_exempt_institutions_filepath: str = "royalty_exempt_institutions.txt"
+
     # nerc_rates info
     new_pi_credit_amount: Decimal | None = None
     limit_new_pi_credit_to_partners: bool | None = None
