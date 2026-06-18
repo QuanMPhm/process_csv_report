@@ -1,4 +1,5 @@
 resources:
   - ../base
-  - secret-b2-old-pi.yaml
+  - secret-nerc-invoices-s3-bucket.yaml
   - secret-gh-nonbillables.yaml
+  - secret-coldfront-api.yaml

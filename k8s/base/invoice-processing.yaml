@@ -14,17 +14,29 @@ spec:
             env:
               - name: GH_NONBILLABLE_DEPLOYKEY
                 valueFrom:
-                secretKeyRef:
-                  name: gh-nonbillables
-                  key: ssh-deploykey
+                  secretKeyRef:
+                    name: gh-nonbillables
+                    key: ssh-privatekey
               - name: S3_KEY_ID
                 valueFrom:
-                secretKeyRef:
-                  name: nerc-invoices-s3-bucket
-                  key: s3-key-id
+                  secretKeyRef:
+                    name: nerc-invoices-s3-bucket
+                    key: s3-key-id
               - name: S3_APP_KEY
                 valueFrom:
-                secretKeyRef:
-                  name: nerc-invoices-s3-bucket
-                  key: s3-app-key
+                  secretKeyRef:
+                    name: nerc-invoices-s3-bucket
+                    key: s3-app-key
+              - name: KEYCLOAK_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: coldfront-api
+                    key: keycloak-client-id
+              - name: KEYCLOAK_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: coldfront-api
+                    key: keycloak-client-secret
+              - name: UPLOAD_TO_S3
+                value: "True"
           restartPolicy: OnFailure
