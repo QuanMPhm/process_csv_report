@@ -63,30 +63,33 @@ class Loader:
 
     @functools.lru_cache
     def get_new_pi_credit_amount(self) -> Decimal:
-        return invoice_settings.new_pi_credit_amount or get_rates_info().get_value_at(
+        if invoice_settings.new_pi_credit_amount is not None:
+            return invoice_settings.new_pi_credit_amount
+        return get_rates_info().get_value_at(
             "New PI Credit", invoice_settings.invoice_month, Decimal
         )
 
     @functools.lru_cache
     def get_limit_new_pi_credit_to_partners(self) -> bool:
-        return (
-            invoice_settings.limit_new_pi_credit_to_partners
-            or get_rates_info().get_value_at(
-                "Limit New PI Credit to MGHPCC Partners",
-                invoice_settings.invoice_month,
-                bool,
-            )
+        if invoice_settings.limit_new_pi_credit_to_partners is not None:
+            return invoice_settings.limit_new_pi_credit_to_partners
+        return get_rates_info().get_value_at(
+            "Limit New PI Credit to MGHPCC Partners",
+            invoice_settings.invoice_month,
+            bool,
         )
 
     @functools.lru_cache
     def get_bu_subsidy_amount(self) -> Decimal:
-        return invoice_settings.bu_subsidy_amount or get_rates_info().get_value_at(
+        if invoice_settings.bu_subsidy_amount is not None:
+            return invoice_settings.bu_subsidy_amount
+        return get_rates_info().get_value_at(
             "BU Subsidy", invoice_settings.invoice_month, Decimal
         )
 
     @functools.lru_cache
     def get_lenovo_su_charge_info(self) -> dict[str, Decimal]:
-        if invoice_settings.lenovo_charge_info:
+        if invoice_settings.lenovo_charge_info is not None:
             return invoice_settings.lenovo_charge_info
 
         lenovo_charge_info = {}
