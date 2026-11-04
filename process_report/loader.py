@@ -10,17 +10,6 @@ from process_report import util
 from process_report.settings import invoice_settings
 from process_report.invoices import invoice
 
-# List of service invoices processed by pipeline. Change if new services are added.
-# Cannot simply filter by suffix because S3 can't do it
-S3_SERVICE_INVOICE_LIST = [
-    "ocp-test {invoice_month}.csv",
-    "ocp-prod {invoice_month}.csv",
-    "academic {invoice_month}.csv",
-    "barcelona {invoice_month}.csv",
-    "NERC OpenStack {invoice_month}.csv",
-    "NERC Storage {invoice_month}.csv",
-]
-
 
 @functools.lru_cache
 def get_rates_info():
@@ -34,14 +23,17 @@ class Loader:
         csv_invoice_filepath_list = []
         if invoice_settings.fetch_from_s3:
             s3_bucket = util.get_invoice_bucket()
+            invoice_dir_path = invoice_settings.invoice_path_template.format(
+                invoice_month=invoice_settings.invoice_month
+            )
+            invoice_month_suffix = f"{invoice_settings.invoice_month}.csv"
 
-            for invoice_name_template in S3_SERVICE_INVOICE_LIST:
-                local_name = invoice_name_template.format(
-                    invoice_month=invoice_settings.invoice_month
-                )
-                s3_name = (invoice_settings.invoice_path_template + local_name).format(
-                    invoice_month=invoice_settings.invoice_month
-                )
+            for s3_object in s3_bucket.objects.filter(Prefix=invoice_dir_path):
+                s3_name = s3_object.key
+                local_name = os.path.basename(s3_name)
+                if not local_name.endswith(invoice_month_suffix):
+                    continue
+
                 csv_invoice_filepath_list.append(local_name)
                 s3_bucket.download_file(s3_name, local_name)
         else:
